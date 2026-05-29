@@ -23,10 +23,13 @@ function computeStructuralSimilarity(el1: Element, el2: Element): number {
 function generateSelector(el: Element): string {
   let selector = el.tagName.toLowerCase();
   if (el.id) {
-    return `#${el.id}`;
+    try {
+      CSS.escape(el.id);
+      return `#${CSS.escape(el.id)}`;
+    } catch(e) {}
   }
   if (el.classList.length > 0) {
-    selector += '.' + Array.from(el.classList).join('.');
+    selector += '.' + Array.from(el.classList).map(c => CSS.escape(c)).join('.');
   }
   return selector;
 }

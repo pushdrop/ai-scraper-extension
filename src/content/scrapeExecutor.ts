@@ -56,5 +56,13 @@ export function executeScrapePlan(plan: ScrapePlan) {
     return row;
   });
 
-  return rows;
+  // Filter out rows where all fields are null or empty
+  const validRows = rows.filter(row => {
+    return Object.values(row).some(val => {
+      if (Array.isArray(val)) return val.length > 0;
+      return val !== null && val !== '';
+    });
+  });
+
+  return validRows;
 }

@@ -20,7 +20,7 @@ function getCommonChildren(sampleElements: Element[]) {
     if (!child.tagName) continue;
     let selector = child.tagName.toLowerCase();
     if (child.classList.length > 0) {
-      selector += '.' + Array.from(child.classList).join('.');
+      selector += '.' + Array.from(child.classList).map(c => CSS.escape(c)).join('.');
     }
     
     let textSamples: string[] = [];
@@ -28,11 +28,15 @@ function getCommonChildren(sampleElements: Element[]) {
     let srcSamples: string[] = [];
     
     for (const sample of sampleElements) {
-      const match = sample.querySelector(selector);
-      if (match) {
-        if (match.textContent && match.textContent.trim()) textSamples.push(match.textContent.trim().substring(0, 50));
-        if (match.tagName === 'A' && (match as HTMLAnchorElement).href) hrefSamples.push((match as HTMLAnchorElement).href);
-        if (match.tagName === 'IMG' && (match as HTMLImageElement).src) srcSamples.push((match as HTMLImageElement).src);
+      try {
+        const match = sample.querySelector(selector);
+        if (match) {
+          if (match.textContent && match.textContent.trim()) textSamples.push(match.textContent.trim().substring(0, 50));
+          if (match.tagName === 'A' && (match as HTMLAnchorElement).href) hrefSamples.push((match as HTMLAnchorElement).href);
+          if (match.tagName === 'IMG' && (match as HTMLImageElement).src) srcSamples.push((match as HTMLImageElement).src);
+        }
+      } catch (e) {
+        // ignore invalid selector errors
       }
     }
     
