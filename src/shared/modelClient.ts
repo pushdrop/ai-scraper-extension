@@ -43,7 +43,7 @@ export type SmartCopyPlan = {
   warnings: string[];
 };
 
-export async function askAiForPlan(candidates: Candidate[]): Promise<SmartCopyPlan> {
+export async function askAiForPlan(candidates: Candidate[], userInstruction?: string): Promise<SmartCopyPlan> {
   return new Promise((resolve, reject) => {
     chrome.storage.sync.get(['apiKey', 'model'], async (items) => {
       const apiKey = items.apiKey;
@@ -68,6 +68,7 @@ Rules:
 - Do not return scraped rows.
 - Return EXACTLY the JSON structure described below. No other keys.
 
+${userInstruction ? `USER PREFERENCE/INSTRUCTION:\n"${userInstruction}"\n(Please adjust the field selections and candidate choice to best match this instruction if possible.)\n` : ''}
 EXPECTED JSON SCHEMA:
 {
   "version": "1.0",

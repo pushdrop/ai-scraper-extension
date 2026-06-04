@@ -8,6 +8,7 @@ import { formatToMarkdown } from '../shared/markdown';
 function Popup() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'ai_thinking' | 'choosing' | 'extracting' | 'done' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [userInstruction, setUserInstruction] = useState('');
   const [aiPlan, setAiPlan] = useState<SmartCopyPlan | null>(null);
   const [rawCandidates, setRawCandidates] = useState<any[]>([]);
   const [extractedRows, setExtractedRows] = useState<Record<string, unknown>[]>([]);
@@ -51,7 +52,7 @@ function Popup() {
         setRawCandidates(response.candidates);
         setStatus('ai_thinking');
         try {
-          const plan = await askAiForPlan(response.candidates);
+          const plan = await askAiForPlan(response.candidates, userInstruction.trim());
           setAiPlan(plan);
           
           if (plan.mode === 'auto_selected' && plan.scrapePlan) {
@@ -106,12 +107,21 @@ function Popup() {
       <h1 style={{ fontSize: '18px', marginBottom: '16px' }}>Smart Copy Page</h1>
       
       {status === 'idle' && (
-        <button 
-          onClick={handleScan}
-          style={{ padding: '10px 16px', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', width: '100%', fontSize: '16px' }}
-        >
-          Copy Useful Data
-        </button>
+        <div style={{ marginBottom: '16px' }}>
+          <input 
+            type="text" 
+            placeholder="Optional: what data do you want? (e.g. only prices)" 
+            value={userInstruction}
+            onChange={(e) => setUserInstruction(e.target.value)}
+            style={{ width: '100%', padding: '8px', marginBottom: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ccc' }}
+          />
+          <button 
+            onClick={handleScan}
+            style={{ padding: '10px 16px', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', width: '100%', fontSize: '16px' }}
+          >
+            Copy Useful Data
+          </button>
+        </div>
       )}
 
       {status === 'scanning' && <p>Scanning page...</p>}
