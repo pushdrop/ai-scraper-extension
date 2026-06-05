@@ -5,6 +5,16 @@ import { askAiForPlan, askAiToRevisePlan } from '../shared/modelClient';
 import { formatToCsv } from '../shared/csv';
 import { formatToMarkdown } from '../shared/markdown';
 
+type HistoryEntry = {
+  id: number;
+  date: string;
+  url: string;
+  title: string;
+  rowCount: number;
+  plan: ScrapePlan;
+  rows: Record<string, unknown>[];
+};
+
 function Popup() {
   const [status, setStatus] = useState<'idle' | 'scanning' | 'ai_thinking' | 'choosing' | 'extracting' | 'done' | 'error' | 'revising'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -14,6 +24,15 @@ function Popup() {
   const [rawCandidates, setRawCandidates] = useState<any[]>([]);
   const [extractedRows, setExtractedRows] = useState<Record<string, unknown>[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<ScrapePlan | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  React.useEffect(() => {
+    if (status === 'idle') {
+      chrome.storage.local.get('history', (res) => {
+        if (res.history) setHistory(res.history as HistoryEntry[]);
+      });
+    }
+  }, [status]);
 
   const handleError = (msg: string) => {
     setErrorMsg(msg);
@@ -25,17 +44,46 @@ function Popup() {
     setSelectedPlan(plan);
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.id) {
-      chrome.tabs.sendMessage(tab.id, { action: 'EXECUTE_SCRAPE', plan }, (response) => {
+      chrome.tabs.sendMessage(tab.id, { action: 'EXECUTE_SCRAPE', plan }, async (response) => {
         if (chrome.runtime.lastError) {
            return handleError(chrome.runtime.lastError.message || 'Error extracting');
         }
         if (response?.error) {
           return handleError(response.error);
         }
-        setExtractedRows(response.rows || []);
+        const rows = response.rows || [];
+        setExtractedRows(rows);
         setStatus('done');
+
+        // Save to history
+        const entry: HistoryEntry = {
+          id: Date.now(),
+          date: new Date().toLocaleString(),
+          url: tab.url || '',
+          title: tab.title || 'Unknown Page',
+          rowCount: rows.length,
+          plan: plan,
+          rows: rows
+        };
+
+        const storage = await chrome.storage.local.get('history');
+        let hist: HistoryEntry[] = (storage.history as HistoryEntry[]) || [];
+        hist.unshift(entry);
+        if (hist.length > 10) hist = hist.slice(0, 10);
+        
+        try {
+          await chrome.storage.local.set({ history: hist });
+        } catch (e) {
+          console.error("Failed to save history (likely quota exceeded)", e);
+        }
       });
     }
+  };
+
+  const loadHistoryItem = (item: HistoryEntry) => {
+    setSelectedPlan(item.plan);
+    setExtractedRows(item.rows);
+    setStatus('done');
   };
 
   const handleRevise = async () => {
@@ -138,6 +186,29 @@ function Popup() {
         </div>
       )}
 
+      {status === 'idle' && history.length > 0 && (
+        <div style={{ marginTop: '24px' }}>
+          <h2 style={{ fontSize: '14px', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>Recent Extractions</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
+            {history.map(item => (
+              <div 
+                key={item.id} 
+                onClick={() => loadHistoryItem(item)}
+                style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', background: '#fafafa' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f0f7ff'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#fafafa'}
+              >
+                <div style={{ fontWeight: 'bold', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.title}</div>
+                <div style={{ fontSize: '11px', color: '#666', marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                   <span>{item.rowCount} items</span>
+                   <span>{item.date}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {status === 'scanning' && <p>Scanning page...</p>}
       {status === 'ai_thinking' && <p>Finding useful data...</p>}
       {status === 'extracting' && <p>Extracting data locally...</p>}
@@ -211,6 +282,12 @@ function Popup() {
              >
                 Fix with AI
              </button>
+          </div>
+
+          <div style={{ marginTop: '16px', textAlign: 'center' }}>
+            <button onClick={() => setStatus('idle')} style={{ background: 'none', border: 'none', color: '#0066cc', cursor: 'pointer', textDecoration: 'underline' }}>
+              &larr; Start New Scan
+            </button>
           </div>
         </div>
       )}
