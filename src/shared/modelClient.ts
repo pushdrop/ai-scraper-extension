@@ -39,7 +39,7 @@ export type SmartCopyPlan = {
   mode: "auto_selected" | "needs_user_choice" | "needs_click_example";
   recommendedCandidateId?: string | null;
   candidates: CandidateSummary[];
-  scrapePlan?: ScrapePlan | null;
+  scrapePlans?: ScrapePlan[] | null;
   warnings: string[];
 };
 
@@ -85,25 +85,27 @@ EXPECTED JSON SCHEMA:
       "reason": "Why chosen"
     }
   ],
-  "scrapePlan": {
-    "candidateId": "c1",
-    "itemSelector": "...",
-    "fields": [
-      {
-        "name": "title",
-        "label": "Title",
-        "selector": ".title",
-        "selectorScope": "item",
-        "type": "text", // or "attribute" | "absolute_url"
-        "attribute": null, // or "href"
-        "multiple": false,
-        "required": true,
-        "transform": "normalize_whitespace",
-        "fallbackSelectors": []
-      }
-    ],
-    "pagination": { "strategy": "none" }
-  },
+  "scrapePlans": [
+    {
+      "candidateId": "c1",
+      "itemSelector": "...",
+      "fields": [
+        {
+          "name": "title",
+          "label": "Title",
+          "selector": ".title",
+          "selectorScope": "item",
+          "type": "text", // or "attribute" | "absolute_url"
+          "attribute": null, // or "href"
+          "multiple": false,
+          "required": true,
+          "transform": "normalize_whitespace",
+          "fallbackSelectors": []
+        }
+      ],
+      "pagination": { "strategy": "none" }
+    }
+  ],
   "warnings": []
 }
 
@@ -143,7 +145,11 @@ ${JSON.stringify(candidates.slice(0, 5), null, 2)}
         
         let plan: SmartCopyPlan;
         try {
-          plan = JSON.parse(content) as SmartCopyPlan;
+          const rawPlan = JSON.parse(content);
+          if (rawPlan.scrapePlan && (!rawPlan.scrapePlans || rawPlan.scrapePlans.length === 0)) {
+            rawPlan.scrapePlans = [rawPlan.scrapePlan];
+          }
+          plan = rawPlan as SmartCopyPlan;
           console.log('Parsed AI Plan:', plan);
         } catch (parseErr) {
           console.error('Failed to parse AI JSON response:', content);

@@ -55,8 +55,8 @@ function Popup() {
           const plan = await askAiForPlan(response.candidates, userInstruction.trim());
           setAiPlan(plan);
           
-          if (plan.mode === 'auto_selected' && plan.scrapePlan) {
-            await executeExtraction(plan.scrapePlan);
+          if (plan.mode === 'auto_selected' && plan.scrapePlans && plan.scrapePlans.length > 0) {
+            await executeExtraction(plan.scrapePlans[0]);
           } else if (plan.mode === 'needs_user_choice') {
             setStatus('choosing');
           } else {
@@ -150,10 +150,12 @@ function Popup() {
                 <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666' }}>{c.sampleSummary}</p>
                 <button 
                   onClick={() => {
-                     // MVP logic: for user choice, we would ideally need a second AI call to get the scrape plan 
-                     // for the chosen candidate, OR we could ask AI to provide scrape plans for all candidates upfront.
-                     // For MVP we just alert if missing, but we assume the prompt could be updated to include all plans.
-                     handleError('Choosing mode requires fetching specific scrape plan. Update prompt to return plans for all candidates.');
+                     const sPlan = aiPlan.scrapePlans?.find(p => p.candidateId === c.candidateId);
+                     if (sPlan) {
+                       executeExtraction(sPlan);
+                     } else {
+                       handleError('Could not find scrape plan for this candidate.');
+                     }
                   }}
                   style={{ padding: '4px 12px', cursor: 'pointer' }}
                 >
