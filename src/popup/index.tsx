@@ -126,6 +126,7 @@ function Popup() {
             placeholder="Optional: what data do you want? (e.g. only prices)" 
             value={userInstruction}
             onChange={(e) => setUserInstruction(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleScan(); }}
             style={{ width: '100%', padding: '8px', marginBottom: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ccc' }}
           />
           <button 
@@ -201,6 +202,7 @@ function Popup() {
                 placeholder="E.g., remove the image field, extract the href"
                 value={revisionInstruction}
                 onChange={e => setRevisionInstruction(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleRevise(); }}
                 style={{ width: '100%', padding: '8px', marginBottom: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ccc' }}
              />
              <button 
