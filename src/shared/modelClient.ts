@@ -163,3 +163,86 @@ ${JSON.stringify(candidates.slice(0, 5), null, 2)}
     });
   });
 }
+
+export async function askAiToRevisePlan(
+  candidates: Candidate[],
+  originalPlan: ScrapePlan,
+  sampleRows: any[],
+  revisionInstruction: string
+): Promise<ScrapePlan> {
+  return new Promise((resolve, reject) => {
+    chrome.storage.sync.get(['apiKey', 'model'], async (items) => {
+      const apiKey = items.apiKey;
+      const model = items.model || 'gpt-4o-mini';
+
+      if (!apiKey) return reject(new Error('Missing OpenAI API Key'));
+
+      const prompt = `
+You previously generated a JSON scrape plan for this webpage.
+Here is your original scrape plan:
+${JSON.stringify(originalPlan, null, 2)}
+
+Here are the first few rows of data extracted using your plan:
+${JSON.stringify(sampleRows.slice(0, 3), null, 2)}
+
+The user has reviewed the data and provided this instruction to fix/revise it:
+"${revisionInstruction}"
+
+Below are the original DOM candidates from the page for your reference:
+${JSON.stringify(candidates.slice(0, 5), null, 2)}
+
+Please return a single, updated JSON ScrapePlan object (just the plan, NOT the full SmartCopyPlan envelope).
+
+EXPECTED JSON SCHEMA:
+{
+  "candidateId": "c1",
+  "itemSelector": "...",
+  "fields": [
+    {
+      "name": "title",
+      "label": "Title",
+      "selector": ".title",
+      "selectorScope": "item",
+      "type": "text",
+      "attribute": null,
+      "multiple": false,
+      "required": true,
+      "transform": "normalize_whitespace",
+      "fallbackSelectors": []
+    }
+  ],
+  "pagination": { "strategy": "none" }
+}
+      `;
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'You are an expert web scraper. Return strictly valid JSON matching the requested ScrapePlan schema.' },
+              { role: 'user', content: prompt }
+            ],
+            response_format: { type: 'json_object' }
+          })
+        });
+
+        if (!response.ok) throw new Error('API Error: ' + response.statusText);
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        console.log('Raw AI Revision Response:', content);
+        
+        const plan = JSON.parse(content) as ScrapePlan;
+        resolve(plan);
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+}

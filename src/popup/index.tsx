@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import type { SmartCopyPlan, ScrapePlan } from '../shared/modelClient';
-import { askAiForPlan } from '../shared/modelClient';
+import { askAiForPlan, askAiToRevisePlan } from '../shared/modelClient';
 import { formatToCsv } from '../shared/csv';
 import { formatToMarkdown } from '../shared/markdown';
 
 function Popup() {
-  const [status, setStatus] = useState<'idle' | 'scanning' | 'ai_thinking' | 'choosing' | 'extracting' | 'done' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'scanning' | 'ai_thinking' | 'choosing' | 'extracting' | 'done' | 'error' | 'revising'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [userInstruction, setUserInstruction] = useState('');
+  const [revisionInstruction, setRevisionInstruction] = useState('');
   const [aiPlan, setAiPlan] = useState<SmartCopyPlan | null>(null);
   const [rawCandidates, setRawCandidates] = useState<any[]>([]);
   const [extractedRows, setExtractedRows] = useState<Record<string, unknown>[]>([]);
@@ -34,6 +35,18 @@ function Popup() {
         setExtractedRows(response.rows || []);
         setStatus('done');
       });
+    }
+  };
+
+  const handleRevise = async () => {
+    if (!selectedPlan) return;
+    setStatus('revising');
+    try {
+      const newPlan = await askAiToRevisePlan(rawCandidates, selectedPlan, extractedRows, revisionInstruction);
+      await executeExtraction(newPlan);
+    } catch (e: any) {
+      console.error('AI Revision Error:', e);
+      handleError(e.message || 'Error revising plan with AI');
     }
   };
 
@@ -176,12 +189,31 @@ function Popup() {
             <button onClick={() => handleCopy('markdown')} style={{ flex: 1, padding: '8px', cursor: 'pointer' }}>Copy MD</button>
           </div>
           
-          <div style={{ maxHeight: '200px', overflow: 'auto', background: '#f5f5f5', padding: '8px', borderRadius: '4px', fontSize: '12px' }}>
+          <div style={{ maxHeight: '200px', overflow: 'auto', background: '#f5f5f5', padding: '8px', borderRadius: '4px', fontSize: '12px', marginBottom: '16px' }}>
             <pre style={{ margin: 0 }}>{JSON.stringify(extractedRows.slice(0, 2), null, 2)}</pre>
             {extractedRows.length > 2 && <p style={{ color: '#666', marginTop: '8px' }}>... and {extractedRows.length - 2} more rows</p>}
           </div>
+
+          <div style={{ background: '#eef6fc', padding: '12px', borderRadius: '6px' }}>
+             <p style={{ margin: '0 0 8px 0', fontSize: '13px', fontWeight: 'bold' }}>Data not quite right?</p>
+             <input 
+                type="text" 
+                placeholder="E.g., remove the image field, extract the href"
+                value={revisionInstruction}
+                onChange={e => setRevisionInstruction(e.target.value)}
+                style={{ width: '100%', padding: '8px', marginBottom: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ccc' }}
+             />
+             <button 
+                onClick={handleRevise}
+                style={{ padding: '8px 16px', background: '#0066cc', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', width: '100%' }}
+             >
+                Fix with AI
+             </button>
+          </div>
         </div>
       )}
+
+      {status === 'revising' && <p>Asking AI to fix the data...</p>}
 
       <div style={{ marginTop: '16px', borderTop: '1px solid #eee', paddingTop: '8px', textAlign: 'right' }}>
         <a href="#" onClick={() => chrome.runtime.openOptionsPage()} style={{ fontSize: '12px', color: '#666', textDecoration: 'none' }}>Settings</a>
