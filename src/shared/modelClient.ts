@@ -36,14 +36,14 @@ export type ScrapePlan = {
 
 export type SmartCopyPlan = {
   version: "1.0";
-  mode: "auto_selected" | "needs_user_choice" | "needs_click_example";
+  mode: "auto_selected" | "multiple_datasets" | "needs_user_choice" | "needs_click_example";
   recommendedCandidateId?: string | null;
   candidates: CandidateSummary[];
   scrapePlans?: ScrapePlan[] | null;
   warnings: string[];
 };
 
-export async function askAiForPlan(candidates: Candidate[], userInstruction?: string): Promise<SmartCopyPlan> {
+export async function askAiForPlan(candidates: Candidate[], userInstruction?: string, selectionHint?: string): Promise<SmartCopyPlan> {
   return new Promise((resolve, reject) => {
     chrome.storage.sync.get(['apiKey', 'model'], async (items) => {
       const apiKey = items.apiKey;
@@ -57,22 +57,31 @@ export async function askAiForPlan(candidates: Candidate[], userInstruction?: st
 Analyze these repeated DOM candidates from the current webpage.
 Goal: Help a busy user copy the useful structured data from the page with minimal effort.
 
+First, classify what is on this page. There are TWO different situations and they must NOT be confused:
+  (A) ALTERNATIVES — several candidates are competing guesses for the SAME data the user wants (e.g. the same list detected at different nesting levels, or it's ambiguous which list is "the" list). These are mutually-exclusive guesses; the right answer is to pick one.
+  (B) DISTINCT DATASETS — the page contains MORE THAN ONE genuinely different kind of repeated record, each describing different things and therefore with DIFFERENT fields (e.g. a product grid AND a customer-reviews list AND a "related items" strip; or two different tables with different columns). These are NOT alternatives — the user may want any or all of them.
+
 Rules:
-- Prefer the main content area.
-- Prefer product cards, search results, listings, tables, reviews, jobs, events, directories, or article lists.
+- Prefer the main content area. Prefer product cards, search results, listings, tables, reviews, jobs, events, directories, or article lists.
 - Penalize nav links, footer links, filter controls, menus, sidebars, and cookie banners.
-- If the best candidate is obvious, auto-select it and return a scrape plan.
-- If multiple candidates are close, return choices for the user.
-- If none are good, request click-example fallback.
+- Choose ONE mode:
+  - mode="auto_selected": exactly one useful dataset exists and it is obvious. Return its single scrape plan.
+  - mode="multiple_datasets": situation (B) — multiple DISTINCT datasets exist. Return ONE scrapePlan for EACH distinct dataset, with fields tailored to that dataset. Different datasets WILL have different fields, and that is expected and correct.
+  - mode="needs_user_choice": situation (A) — several close alternatives for the same intent and you cannot confidently pick. List them and include a scrapePlan for EACH listed candidate.
+  - mode="needs_click_example": none of the candidates are useful.
+- Do NOT collapse distinct datasets into one. Do NOT emit the same dataset multiple times as if it were several.
+- IMPORTANT: every candidate you list in "candidates" must have a corresponding entry in "scrapePlans" with a matching candidateId.
+- If the user instruction below names more than one kind of data, treat that as a strong signal for mode="multiple_datasets".
 - Field selectors should usually be relative to each item.
 - Do not return scraped rows.
 - Return EXACTLY the JSON structure described below. No other keys.
 
 ${userInstruction ? `USER PREFERENCE/INSTRUCTION:\n"${userInstruction}"\n(Please adjust the field selections and candidate choice to best match this instruction if possible.)\n` : ''}
+${selectionHint ? `USER TEXT SELECTION:\nThe user highlighted the following text on the page as an example of what they care about. Use it to infer WHICH dataset/candidate they want and WHICH fields to extract — the data they want likely matches, contains, or surrounds this text. Strongly prefer the candidate whose items contain this text.\n"""\n${selectionHint.slice(0, 2000)}\n"""\n` : ''}
 EXPECTED JSON SCHEMA:
 {
   "version": "1.0",
-  "mode": "auto_selected" | "needs_user_choice" | "needs_click_example",
+  "mode": "auto_selected" | "multiple_datasets" | "needs_user_choice" | "needs_click_example",
   "recommendedCandidateId": "c1",
   "candidates": [
     {
@@ -86,6 +95,7 @@ EXPECTED JSON SCHEMA:
     }
   ],
   "scrapePlans": [
+    // One entry PER dataset (multiple_datasets) or PER listed candidate (needs_user_choice).
     {
       "candidateId": "c1",
       "itemSelector": "...",
@@ -110,10 +120,10 @@ EXPECTED JSON SCHEMA:
 }
 
 Candidates:
-${JSON.stringify(candidates.slice(0, 5), null, 2)}
+${JSON.stringify(candidates.slice(0, 8), null, 2)}
       `;
 
-      console.log('Sending candidates to AI:', candidates.slice(0, 5));
+      console.log('Sending candidates to AI:', candidates.slice(0, 8));
 
       try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {

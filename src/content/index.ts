@@ -1,5 +1,5 @@
 import { getScanRoots } from './domScanner';
-import { detectCandidates } from './candidateDetector';
+import { detectCandidates, dedupeCandidates } from './candidateDetector';
 import { rankCandidates } from './candidateRanker';
 import { executeScrapePlan } from './scrapeExecutor';
 import { highlightElements, clearHighlights } from './overlayHighlighter';
@@ -67,6 +67,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     const roots = getScanRoots();
     let candidates = detectCandidates(roots);
     candidates = rankCandidates(candidates);
+    // Collapse nested duplicates of the same region so distinct patterns survive truncation.
+    candidates = dedupeCandidates(candidates);
     
     // We send candidates up to the popup
     const serializableCandidates = candidates.map(c => ({
@@ -95,6 +97,12 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     } catch (e: any) {
       sendResponse({ error: e.message });
     }
+    return true;
+  }
+
+  if (request.action === 'GET_SELECTION') {
+    const sel = window.getSelection()?.toString() || '';
+    sendResponse({ selection: sel.replace(/\s+/g, ' ').trim() });
     return true;
   }
 

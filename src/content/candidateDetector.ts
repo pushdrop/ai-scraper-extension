@@ -78,3 +78,30 @@ export function detectCandidates(roots: Element[]): Candidate[] {
 
   return candidates;
 }
+
+/**
+ * Collapses candidates that point at the SAME underlying data region but were
+ * detected at different DOM nesting levels (e.g. a wrapper <section> and the
+ * inner grid both directly containing the same repeated cards). Without this,
+ * the top of the ranked list fills up with near-duplicate variants of the one
+ * dominant region and genuinely DISTINCT patterns never reach the model.
+ *
+ * Expects candidates pre-sorted by score (best first) so the higher-scored
+ * variant of a region is the one kept.
+ */
+export function dedupeCandidates(candidates: Candidate[]): Candidate[] {
+  const kept: Candidate[] = [];
+  for (const cand of candidates) {
+    const candEl = cand.sampleElements[0];
+    if (!candEl) continue;
+    const isRedundant = kept.some((k) => {
+      const kEl = k.sampleElements[0];
+      if (!kEl) return false;
+      // Same region if one sample item contains the other (nested wrappers of
+      // the same repeated data).
+      return kEl.contains(candEl) || candEl.contains(kEl);
+    });
+    if (!isRedundant) kept.push(cand);
+  }
+  return kept;
+}
