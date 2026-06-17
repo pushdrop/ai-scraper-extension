@@ -11,6 +11,16 @@ This extension leverages a hybrid architecture to maximize privacy, accuracy, an
 
 Your full page HTML and actual row data never leave your browser. The AI only sees a tiny abstract skeleton of the DOM structure!
 
+## Features
+
+- **Multiple distinct datasets**: When a page contains several different kinds of records (e.g. a product grid *and* a reviews list *and* a "related items" strip), the extension detects each one and presents them as separate tabs — each with its own columns and its own CSV/JSON/Markdown copy buttons. Different datasets can have entirely different fields.
+- **Selection as a hint**: Highlight some text on the page before opening the extension and check **"Use my selected text as a hint."** The selection is fed to the AI so it prefers the dataset and fields that match what you actually care about.
+- **Optional instruction**: Type what you want in plain language (e.g. "products and reviews", "only prices") to steer candidate and field selection.
+- **AI correction loop**: If a dataset isn't quite right, describe the fix ("remove the image field", "extract the href") and the AI revises just that dataset's plan.
+- **History**: Your last several extractions are saved locally for quick re-access.
+- **Model picker**: Choose your OpenAI model from a dropdown, or fetch the list of available models directly from your API key.
+- **Hover highlighting**: When choosing between candidates, hovering a choice highlights the matching elements on the page.
+
 ## Installation
 
 1. Clone the repository:
@@ -40,13 +50,19 @@ Before using the extension, you must configure your OpenAI API key:
 1. Right-click the Smart Copy Page extension icon in your Chrome toolbar.
 2. Select **Options**.
 3. Enter your OpenAI API Key.
-4. *(Optional)* Customize the default Model (defaults to `gpt-4o-mini`).
+4. *(Optional)* Pick a Model from the dropdown, or click **Fetch** to load the models available to your key (defaults to `gpt-4o-mini`).
 5. Click **Save Settings**.
 
 ## Usage
 
 1. Navigate to any page containing a list, grid, or table of data (e.g., Amazon search results, real estate listings).
-2. Click the Smart Copy Page extension icon.
-3. Click **Copy Useful Data**.
-4. The extension will automatically detect the best data group. If multiple plausible lists exist, it will present a human-readable chooser (complete with hover-highlights on the page).
-5. Copy the extracted data directly to your clipboard in CSV, JSON, or Markdown formats!
+2. *(Optional)* Highlight some text on the page to hint at what you want, and/or type an instruction in the popup.
+3. Click the Smart Copy Page extension icon.
+4. *(Optional)* If you selected text, check **"Use my selected text as a hint."**
+5. Click **Copy Useful Data**.
+6. The extension detects the data automatically:
+   - One obvious dataset → it's extracted immediately.
+   - Several **distinct** datasets → each appears as its own tab with its own columns and copy buttons.
+   - Ambiguous alternatives for the same thing → a human-readable chooser (with hover-highlights on the page).
+7. Not quite right? Use **"Fix with AI"** to refine the active dataset.
+8. Copy the extracted data to your clipboard in CSV, JSON, or Markdown — per dataset.
