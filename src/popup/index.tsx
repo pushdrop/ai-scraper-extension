@@ -243,7 +243,7 @@ function Popup() {
 
   return (
     <div style={{ padding: '16px', minWidth: '350px', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: '18px', marginBottom: '16px' }}>Smart Copy Page</h1>
+      <h1 style={{ fontSize: '18px', marginBottom: '16px' }}>DataPluck</h1>
 
       {status === 'idle' && (
         <div style={{ marginBottom: '16px' }}>

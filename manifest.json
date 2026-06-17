@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Smart Copy Page",
+  "name": "DataPluck",
   "version": "1.0.0",
-  "description": "Copy useful structured data from any webpage with AI.",
+  "description": "Pluck clean, structured data (tables, lists, grids) from any webpage with AI — export to CSV, JSON, or Markdown.",
   "action": {
     "default_popup": "popup.html"
   },

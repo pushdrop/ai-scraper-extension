@@ -1,6 +1,6 @@
-# Smart Copy Page
+# DataPluck
 
-A blazing fast, AI-assisted Chrome Extension that lets you copy structured data (product grids, search results, directory listings) from any webpage without manually writing CSS selectors or building scrapers.
+A blazing fast, AI-assisted Chrome Extension that plucks clean, structured data (product grids, search results, directory listings) from any webpage without manually writing CSS selectors or building scrapers.
 
 ## How It Works
 
@@ -47,7 +47,7 @@ Your full page HTML and actual row data never leave your browser. The AI only se
 ## Configuration
 
 Before using the extension, you must configure your OpenAI API key:
-1. Right-click the Smart Copy Page extension icon in your Chrome toolbar.
+1. Right-click the DataPluck extension icon in your Chrome toolbar.
 2. Select **Options**.
 3. Enter your OpenAI API Key.
 4. *(Optional)* Pick a Model from the dropdown, or click **Fetch** to load the models available to your key (defaults to `gpt-4o-mini`).
@@ -57,7 +57,7 @@ Before using the extension, you must configure your OpenAI API key:
 
 1. Navigate to any page containing a list, grid, or table of data (e.g., Amazon search results, real estate listings).
 2. *(Optional)* Highlight some text on the page to hint at what you want, and/or type an instruction in the popup.
-3. Click the Smart Copy Page extension icon.
+3. Click the DataPluck extension icon.
 4. *(Optional)* If you selected text, check **"Use my selected text as a hint."**
 5. Click **Copy Useful Data**.
 6. The extension detects the data automatically:

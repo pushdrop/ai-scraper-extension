@@ -4,7 +4,7 @@ import { rankCandidates } from './candidateRanker';
 import { executeScrapePlan } from './scrapeExecutor';
 import { highlightElements, clearHighlights } from './overlayHighlighter';
 
-console.log('Smart Copy Page content script loaded');
+console.log('DataPluck content script loaded');
 
 function getSampleRows(sampleElements: Element[]) {
   return sampleElements.map(el => (el.textContent || '').replace(/\s+/g, ' ').trim().substring(0, 100));

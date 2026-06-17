@@ -49,7 +49,7 @@ function Options() {
 
   return (
     <div style={{ padding: '24px', fontFamily: 'sans-serif', maxWidth: '400px' }}>
-      <h1>Smart Copy Settings</h1>
+      <h1>DataPluck Settings</h1>
       
       <div style={{ marginBottom: '16px' }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>
