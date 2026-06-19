@@ -52,7 +52,7 @@ To hand the extension to someone who doesn't have the repo, build a shareable zi
 npm run package
 ```
 
-This builds the project and produces `datapluck-v<version>.zip` (the contents of `dist/`, with `manifest.json` at the root). The recipient then:
+This regenerates the icons from `icon/icon.svg`, builds the project, and produces `datapluck-v<version>.zip` (the contents of `dist/`, with `manifest.json` at the root). The recipient then:
 
 1. Unzips it to a folder they'll keep (Chrome loads from this folder live — don't delete it).
 2. Opens `chrome://extensions/` and enables **Developer mode**.
@@ -60,6 +60,16 @@ This builds the project and produces `datapluck-v<version>.zip` (the contents of
 4. Opens the extension's **Options** and enters their own OpenAI API key.
 
 > Note: each user supplies their own OpenAI API key; nothing is bundled. Developer-mode installs don't auto-update — send a new zip to upgrade. For one-click, auto-updating installs, publish to the Chrome Web Store.
+
+### Icons
+
+The icon source is `icon/icon.svg`. To re-render the PNGs after editing it:
+
+```bash
+npm run icons
+```
+
+This needs the `rsvg-convert` CLI (librsvg). If it isn't installed, the step is skipped and the committed PNGs in `public/icons/` are used as-is, so builds still work.
 
 ## Configuration
 
